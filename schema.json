@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "OpenCode Timed Send Plugin Config",
+  "type": "object",
+  "properties": {
+    "enabled": { "type": "boolean", "default": true },
+    "start": { "type": "string", "pattern": "^([01]\\d|2[0-3]):([0-5]\\d)$", "default": "02:00" },
+    "end": { "type": "string", "pattern": "^([01]\\d|2[0-3]):([0-5]\\d)$", "default": "09:00" },
+    "statusFile": { "type": "string", "default": "opencode-timed-send.status.json" },
+    "display": {
+      "type": "object",
+      "properties": {
+        "promptRight": { "type": "boolean", "default": true },
+        "appBottom": { "type": "boolean", "default": true }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}
