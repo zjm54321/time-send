@@ -24,23 +24,48 @@ function parseConfig(json) {
   const parsed = JSON.parse(json);
   return parseConfigValue(parsed);
 }
-async function loadConfig(options = {}) {
-  const configPath = resolveConfigPath(options);
+async function loadConfigWithPath(options = {}) {
+  const configPaths = resolveConfigPathCandidates(options);
   const readText = options.readText ?? readFileIfExists;
-  const text = await readText(configPath);
-  if (text === undefined) {
-    return DEFAULT_CONFIG;
+  for (const configPath of configPaths) {
+    const text = await readText(configPath);
+    if (text !== undefined) {
+      return { config: parseConfig(text), configPath };
+    }
   }
-  return parseConfig(text);
+  return {
+    config: DEFAULT_CONFIG,
+    configPath: configPaths[0] ?? resolve(process.cwd(), "opencode-timed-send.json")
+  };
 }
-function resolveConfigPath(options = {}) {
+function resolveConfigPathCandidates(options) {
   const envPath = options.env?.OPENCODE_TIMED_SEND_CONFIG;
   const rawPath = options.configPath ?? envPath ?? "opencode-timed-send.json";
   if (isAbsolute(rawPath)) {
-    return rawPath;
+    return [rawPath];
   }
-  const baseDirectory = options.directory ?? process.cwd();
-  return resolve(baseDirectory, rawPath);
+  const paths = [];
+  addResolvedPath(paths, options.directory ?? process.cwd(), rawPath);
+  for (const directory of openCodeConfigDirectories(options.env ?? process.env)) {
+    addResolvedPath(paths, directory, rawPath);
+  }
+  return paths;
+}
+function openCodeConfigDirectories(env) {
+  const directories = [];
+  if (env.OPENCODE_CONFIG_DIR !== undefined && env.OPENCODE_CONFIG_DIR.length > 0) {
+    directories.push(env.OPENCODE_CONFIG_DIR);
+  }
+  if (env.XDG_CONFIG_HOME !== undefined && env.XDG_CONFIG_HOME.length > 0) {
+    directories.push(join(env.XDG_CONFIG_HOME, "opencode"));
+  }
+  return directories;
+}
+function addResolvedPath(paths, directory, rawPath) {
+  const candidate = resolve(directory, rawPath);
+  if (!paths.includes(candidate)) {
+    paths.push(candidate);
+  }
 }
 function resolveStatusPath(config, configPath) {
   if (isAbsolute(config.statusFile)) {
@@ -296,8 +321,7 @@ async function timedSendServer(input, options = {}) {
     "chat.params": async (chatInput, _output) => {
       const directory = input.directory;
       const loadOptions = toLoadConfigOptions(directory, options);
-      const configPath = resolveConfigPath(loadOptions);
-      const config = await loadConfig(loadOptions);
+      const { config, configPath } = await loadConfigWithPath(loadOptions);
       const statusPath = resolveStatusPath(config, configPath);
       const now = options.now?.() ?? new Date;
       if (!config.enabled) {
@@ -384,6 +408,7 @@ function toLoadConfigOptions(directory, options) {
   return {
     ...options.configPath === undefined ? {} : { configPath: options.configPath },
     ...directory === undefined ? {} : { directory },
+    ...options.env === undefined ? {} : { env: options.env },
     ...options.readText === undefined ? {} : { readText: options.readText }
   };
 }
@@ -394,8 +419,7 @@ import { jsxDEV } from "@opentui/solid/jsx-dev-runtime";
 async function timedSendTui(api, options = {}) {
   const directory = options.directory ?? api.state?.path?.config ?? api.state?.path?.directory;
   const loadOptions = toLoadConfigOptions2(directory, options);
-  const configPath = resolveConfigPath(loadOptions);
-  const config = await loadConfig(loadOptions);
+  const { config, configPath } = await loadConfigWithPath(loadOptions);
   const statusPath = resolveStatusPath(config, configPath);
   const readStatusFn = options.readStatus ?? readStatus;
   const currentDate = () => options.now?.() ?? new Date;
@@ -560,6 +584,7 @@ function toLoadConfigOptions2(directory, options) {
   return {
     ...options.configPath === undefined ? {} : { configPath: options.configPath },
     ...directory === undefined ? {} : { directory },
+    ...options.env === undefined ? {} : { env: options.env },
     ...options.readText === undefined ? {} : { readText: options.readText }
   };
 }
