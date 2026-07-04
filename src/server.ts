@@ -1,7 +1,6 @@
 import {
 	type LoadConfigOptions,
-	loadConfig,
-	resolveConfigPath,
+	loadConfigWithPath,
 	resolveStatusPath,
 } from "./config.js";
 import { readStatus, type TimedSendStatus, writeStatus } from "./status.js";
@@ -29,6 +28,7 @@ export interface ServerHooks {
 
 export interface TimedSendServerOptions {
 	readonly configPath?: string;
+	readonly env?: LoadConfigOptions["env"];
 	readonly now?: () => Date;
 	readonly sleep?: (ms: number) => Promise<void>;
 	readonly readText?: LoadConfigOptions["readText"];
@@ -60,8 +60,7 @@ export async function timedSendServer(
 		): Promise<void> => {
 			const directory = input.directory;
 			const loadOptions = toLoadConfigOptions(directory, options);
-			const configPath = resolveConfigPath(loadOptions);
-			const config = await loadConfig(loadOptions);
+			const { config, configPath } = await loadConfigWithPath(loadOptions);
 			const statusPath = resolveStatusPath(config, configPath);
 			const now = options.now?.() ?? new Date();
 
@@ -176,6 +175,7 @@ function toLoadConfigOptions(
 			? {}
 			: { configPath: options.configPath }),
 		...(directory === undefined ? {} : { directory }),
+		...(options.env === undefined ? {} : { env: options.env }),
 		...(options.readText === undefined ? {} : { readText: options.readText }),
 	};
 }

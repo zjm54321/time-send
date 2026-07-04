@@ -10,7 +10,7 @@ import type { BoxRenderable, TextRenderable } from "@opentui/core";
 import type { JSX } from "@opentui/solid";
 import { onCleanup } from "solid-js";
 import type { LoadConfigOptions } from "./config.js";
-import { loadConfig, resolveConfigPath, resolveStatusPath } from "./config.js";
+import { loadConfigWithPath, resolveStatusPath } from "./config.js";
 import { PLUGIN_ID } from "./server.js";
 import { readStatus, type TimedSendStatus, writeStatus } from "./status.js";
 import { formatCountdown } from "./time-window.js";
@@ -31,6 +31,7 @@ export interface TuiApi {
 export interface TuiOptions {
 	readonly configPath?: string;
 	readonly directory?: string;
+	readonly env?: LoadConfigOptions["env"];
 	readonly now?: () => Date;
 	readonly readText?: LoadConfigOptions["readText"];
 	readonly readStatus?: (path: string) => Promise<TimedSendStatus | undefined>;
@@ -55,8 +56,7 @@ export async function timedSendTui(
 	const directory =
 		options.directory ?? api.state?.path?.config ?? api.state?.path?.directory;
 	const loadOptions = toLoadConfigOptions(directory, options);
-	const configPath = resolveConfigPath(loadOptions);
-	const config = await loadConfig(loadOptions);
+	const { config, configPath } = await loadConfigWithPath(loadOptions);
 	const statusPath = resolveStatusPath(config, configPath);
 	const readStatusFn = options.readStatus ?? readStatus;
 	const currentDate = (): Date => options.now?.() ?? new Date();
@@ -259,6 +259,7 @@ function toLoadConfigOptions(
 			? {}
 			: { configPath: options.configPath }),
 		...(directory === undefined ? {} : { directory }),
+		...(options.env === undefined ? {} : { env: options.env }),
 		...(options.readText === undefined ? {} : { readText: options.readText }),
 	};
 }
