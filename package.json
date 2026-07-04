@@ -1,6 +1,6 @@
 {
   "name": "time-send",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "OpenCode plugin that delays provider calls until a configured local send window.",
   "license": "MIT",
   "type": "module",
@@ -52,5 +52,17 @@
     "@opentui/keymap": "^0.4.2",
     "@types/bun": "latest",
     "typescript": "latest"
-  }
+  },
+  "directories": {
+    "test": "test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/zjm54321/time-send.git"
+  },
+  "author": "",
+  "bugs": {
+    "url": "https://github.com/zjm54321/time-send/issues"
+  },
+  "homepage": "https://github.com/zjm54321/time-send#readme"
 }

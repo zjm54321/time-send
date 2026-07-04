@@ -12,6 +12,7 @@ describe("package exports", () => {
 		);
 
 		expect(packageJson).toContain('"name": "time-send"');
+		expect(packageJson).toContain('"version": "0.1.1"');
 		expect(packageJson).toContain('"license": "MIT"');
 		expect(packageJson).toContain('"publishConfig"');
 		expect(packageJson).toContain('"access": "public"');
@@ -25,6 +26,10 @@ describe("package exports", () => {
 
 		expect(readme).toContain('"time-send@latest"');
 		expect(readme).toContain('"file:///C:/Users/Zhang/opencode-timed-send"');
+		expect(readme).toContain('"configPath": "opencode-timed-send.json"');
+		expect(readme).not.toContain(
+			'"configPath": "C:/Users/Zhang/.config/opencode-oc/opencode/opencode-timed-send.json"',
+		);
 		expect(readme).toContain(
 			"After `npm view time-send@latest version` succeeds",
 		);
@@ -50,13 +55,11 @@ describe("package exports", () => {
 		expect(Object.keys(tuiModule).sort()).toEqual(["id", "tui"]);
 	});
 
-	test("package exports do not publish relative configPath defaults", async () => {
+	test("package exports do not publish configPath defaults", async () => {
 		const parsed: unknown = JSON.parse(
 			await readFile(join(process.cwd(), "package.json"), "utf8"),
 		);
-		expect(JSON.stringify(parsed)).not.toContain(
-			'"configPath":"./opencode-timed-send.json"',
-		);
+		expect(JSON.stringify(parsed)).not.toContain('"configPath"');
 	});
 
 	test("published docs and schema do not expose icon configuration", async () => {
