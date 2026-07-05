@@ -145,6 +145,58 @@ describe("tui formatting", () => {
 		expect(toastMessages).toEqual(["timed-send released now"]);
 	});
 
+	test("time-send-now releases the current session even before a waiting status is visible", async () => {
+		const commands: TuiCommand[] = [];
+		const writtenStatuses: TimedSendStatus[] = [];
+		const api: TuiApi = {
+			slots: {
+				register: () => "opencode-timed-send",
+			},
+			command: {
+				register: (getCommands: () => TuiCommand[]) => {
+					commands.push(...getCommands());
+					return () => undefined;
+				},
+			},
+			route: {
+				current: { name: "session", params: { sessionID: "ses_current" } },
+			},
+			ui: {
+				toast: () => undefined,
+			},
+			lifecycle: {
+				onDispose: () => () => undefined,
+			},
+		};
+
+		await timedSendTui(api, {
+			readText: async () => '{"start":"01:30","end":"09:30"}',
+			readStatus: async () => undefined,
+			writeStatus: async (_path, status) => {
+				writtenStatuses.push(status);
+			},
+			now: () => new Date(2026, 6, 1, 0, 0, 0),
+		});
+		const sendNow = commands.find(
+			(command) => command.slash?.name === "time-send-now",
+		);
+
+		await sendNow?.onSelect?.();
+
+		expect(writtenStatuses).toEqual([
+			{
+				schemaVersion: 1,
+				state: "released",
+				sessionID: "ses_current",
+				startedAt: new Date(2026, 6, 1, 0, 0, 0).toISOString(),
+				windowStart: "01:30",
+				windowEnd: "09:30",
+				configPath: expect.any(String),
+				reason: "manual",
+			},
+		]);
+	});
+
 	test("display flags disable sidebar only when both legacy locations are disabled", async () => {
 		const slotNames: string[] = [];
 		const api: TuiApi = {

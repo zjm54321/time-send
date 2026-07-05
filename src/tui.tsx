@@ -18,6 +18,12 @@ import { formatCountdown } from "./time-window.js";
 export interface TuiApi {
 	readonly slots: Pick<TuiSlots, "register">;
 	readonly command?: Pick<TuiCommandApi, "register">;
+	readonly route?: {
+		readonly current: {
+			readonly name: string;
+			readonly params?: Readonly<Record<string, unknown>>;
+		};
+	};
 	readonly ui: Pick<TuiPluginApi["ui"], "toast">;
 	readonly lifecycle: Pick<TuiPluginApi["lifecycle"], "onDispose">;
 	readonly state?: {
@@ -94,19 +100,18 @@ export async function timedSendTui(
 
 	const releaseNow = async (): Promise<void> => {
 		await refresh();
-		if (currentStatus?.state !== "waiting") {
+		const sessionID = currentStatus?.sessionID ?? currentSessionID(api);
+		if (currentStatus?.state !== "waiting" && sessionID === undefined) {
 			api.ui.toast({ message: render() });
 			return;
 		}
 		const released: TimedSendStatus = {
 			schemaVersion: 1,
 			state: "released",
-			...(currentStatus.sessionID === undefined
-				? {}
-				: { sessionID: currentStatus.sessionID }),
+			...(sessionID === undefined ? {} : { sessionID }),
 			startedAt: currentDate().toISOString(),
-			windowStart: currentStatus.windowStart,
-			windowEnd: currentStatus.windowEnd,
+			windowStart: currentStatus?.windowStart ?? config.start,
+			windowEnd: currentStatus?.windowEnd ?? config.end,
 			configPath,
 			reason: "manual",
 		};
@@ -148,6 +153,14 @@ export async function timedSendTui(
 		clearInterval(interval);
 		disposeCommand?.();
 	});
+}
+
+function currentSessionID(api: TuiApi): string | undefined {
+	const params = api.route?.current.params;
+	const sessionID = params?.sessionID;
+	return typeof sessionID === "string" && sessionID.length > 0
+		? sessionID
+		: undefined;
 }
 
 export function TimedSendSidebar(props: {
