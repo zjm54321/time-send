@@ -1,5 +1,5 @@
 import { readFile } from "node:fs/promises";
-import { dirname, isAbsolute, join, resolve, win32 } from "node:path";
+import { basename, dirname, isAbsolute, join, resolve, win32 } from "node:path";
 
 export interface DisplayConfig {
 	readonly promptRight: boolean;
@@ -123,10 +123,33 @@ function addResolvedPath(
 	directory: string,
 	rawPath: string,
 ): void {
-	const candidate = resolvePath(directory, rawPath);
+	const candidate = resolvePath(configDirectory(directory), rawPath);
 	if (!paths.includes(candidate)) {
 		paths.push(candidate);
 	}
+}
+
+function configDirectory(path: string): string {
+	const name = basename(path).toLowerCase();
+	if (
+		name === "opencode.json" ||
+		name === "opencode.jsonc" ||
+		name === "tui.json"
+	) {
+		return dirname(path);
+	}
+	if (win32.basename(path).toLowerCase() === name) {
+		return path;
+	}
+	const winName = win32.basename(path).toLowerCase();
+	if (
+		winName === "opencode.json" ||
+		winName === "opencode.jsonc" ||
+		winName === "tui.json"
+	) {
+		return win32.dirname(path);
+	}
+	return path;
 }
 
 export function resolveStatusPath(

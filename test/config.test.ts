@@ -55,6 +55,15 @@ describe("config parsing", () => {
 		expect(resolved.replaceAll("\\", "/")).toEndWith("/opencode/timed.json");
 	});
 
+	test("resolveConfigPath treats OpenCode config file paths as their directory", () => {
+		const resolved = resolveConfigPath({
+			directory: "C:/Users/Zhang/.config/opencode-oc/opencode/opencode.json",
+		});
+		expect(resolved.replaceAll("\\", "/")).toBe(
+			"C:/Users/Zhang/.config/opencode-oc/opencode/opencode-timed-send.json",
+		);
+	});
+
 	test("loadConfigWithPath keeps directory-relative config ahead of OpenCode config fallback", async () => {
 		const reads: string[] = [];
 		const result = await loadConfigWithPath({
