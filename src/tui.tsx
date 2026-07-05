@@ -108,6 +108,7 @@ export async function timedSendTui(
 			windowStart: currentStatus.windowStart,
 			windowEnd: currentStatus.windowEnd,
 			configPath,
+			reason: "manual",
 		};
 		await (options.writeStatus ?? writeStatus)(statusPath, released);
 		currentNow = currentDate();
