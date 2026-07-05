@@ -1,68 +1,68 @@
 {
-  "name": "time-send",
-  "version": "0.1.1",
-  "description": "OpenCode plugin that delays provider calls until a configured local send window.",
-  "license": "MIT",
-  "type": "module",
-  "main": "./dist/server.js",
-  "scripts": {
-    "test": "bun test",
-    "typecheck": "tsc --noEmit",
-    "build": "bun build ./src/server.ts ./src/tui.tsx --outdir=dist --target=bun --format=esm --external '@opentui/*' --external '@opencode-ai/*' --external solid-js --external 'solid-js/*'"
-  },
-  "exports": {
-    ".": {
-      "import": "./dist/server.js",
-      "default": "./dist/server.js"
-    },
-    "./server": {
-      "import": "./dist/server.js",
-      "default": "./dist/server.js"
-    },
-    "./tui": {
-      "import": "./dist/tui.js",
-      "default": "./dist/tui.js"
-    },
-    "./schema.json": "./schema.json"
-  },
-  "files": [
-    "dist",
-    "schema.json",
-    "README.md",
-    "LICENSE"
-  ],
-  "keywords": [
-    "opencode",
-    "opencode-plugin",
-    "time-send",
-    "timed-send"
-  ],
-  "publishConfig": {
-    "access": "public"
-  },
-  "peerDependencies": {
-    "@opencode-ai/plugin": ">=1.17.0"
-  },
-  "dependencies": {
-    "@opentui/solid": "^0.4.2",
-    "solid-js": "^1.9.12"
-  },
-  "devDependencies": {
-    "@opentui/core": "^0.4.2",
-    "@opentui/keymap": "^0.4.2",
-    "@types/bun": "latest",
-    "typescript": "latest"
-  },
-  "directories": {
-    "test": "test"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/zjm54321/time-send.git"
-  },
-  "author": "",
-  "bugs": {
-    "url": "https://github.com/zjm54321/time-send/issues"
-  },
-  "homepage": "https://github.com/zjm54321/time-send#readme"
+	"name": "time-send",
+	"version": "0.1.2",
+	"description": "OpenCode plugin that delays provider calls until a configured local send window.",
+	"license": "MIT",
+	"type": "module",
+	"main": "./dist/server.js",
+	"scripts": {
+		"test": "bun test",
+		"typecheck": "tsc --noEmit",
+		"build": "bun build ./src/server.ts ./src/tui.tsx --outdir=dist --target=bun --format=esm --external '@opentui/*' --external '@opencode-ai/*' --external solid-js --external 'solid-js/*'"
+	},
+	"exports": {
+		".": {
+			"import": "./dist/server.js",
+			"default": "./dist/server.js"
+		},
+		"./server": {
+			"import": "./dist/server.js",
+			"default": "./dist/server.js"
+		},
+		"./tui": {
+			"import": "./dist/tui.js",
+			"default": "./dist/tui.js"
+		},
+		"./schema.json": "./schema.json"
+	},
+	"files": [
+		"dist",
+		"schema.json",
+		"README.md",
+		"LICENSE"
+	],
+	"keywords": [
+		"opencode",
+		"opencode-plugin",
+		"time-send",
+		"timed-send"
+	],
+	"publishConfig": {
+		"access": "public"
+	},
+	"peerDependencies": {
+		"@opencode-ai/plugin": ">=1.17.0"
+	},
+	"dependencies": {
+		"@opentui/solid": "^0.4.2",
+		"solid-js": "^1.9.12"
+	},
+	"devDependencies": {
+		"@opentui/core": "^0.4.2",
+		"@opentui/keymap": "^0.4.2",
+		"@types/bun": "latest",
+		"typescript": "latest"
+	},
+	"directories": {
+		"test": "test"
+	},
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/zjm54321/time-send.git"
+	},
+	"author": "",
+	"bugs": {
+		"url": "https://github.com/zjm54321/time-send/issues"
+	},
+	"homepage": "https://github.com/zjm54321/time-send#readme"
 }
