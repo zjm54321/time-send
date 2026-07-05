@@ -54,6 +54,7 @@ describe("server", () => {
 						windowEnd: "09:00",
 						configPath:
 							"C:/Users/Zhang/.config/opencode-oc/opencode/opencode-timed-send.json",
+						reason: "manual",
 					});
 				},
 				readStatus: async () => statuses.at(-1),
@@ -69,6 +70,79 @@ describe("server", () => {
 			"waiting",
 			"released",
 		]);
+	});
+
+	test("chat.params keeps a released session open for later provider calls", async () => {
+		const delays: number[] = [];
+		const writes: TimedSendStatus[] = [];
+		const released: TimedSendStatus = {
+			schemaVersion: 1,
+			state: "released",
+			sessionID: "ses_test",
+			startedAt: "2026-07-01T01:58:01.000Z",
+			windowStart: "02:00",
+			windowEnd: "09:00",
+			configPath:
+				"C:/Users/Zhang/.config/opencode-oc/opencode/opencode-timed-send.json",
+			reason: "manual",
+		};
+		const hooks = await timedSendServer(
+			{ directory: "C:/Users/Zhang/.config/opencode-oc/opencode" },
+			{
+				configPath: "opencode-timed-send.json",
+				now: () => new Date(2026, 6, 1, 1, 58, 30),
+				readText: async () => '{"start":"02:00","end":"09:00"}',
+				readStatus: async () => released,
+				sleep: async (ms: number) => {
+					delays.push(ms);
+				},
+				writeStatus: async (_path: string, status: TimedSendStatus) => {
+					writes.push(status);
+				},
+			},
+		);
+
+		await hooks["chat.params"]({ sessionID: "ses_test" }, {});
+		await hooks["chat.params"]({ sessionID: "ses_test" }, {});
+
+		expect(delays).toEqual([]);
+		expect(writes).toEqual([]);
+	});
+
+	test("session interruption clears a persistent manual release", async () => {
+		const removedPaths: string[] = [];
+		const statusPath =
+			"C:/Users/Zhang/.config/opencode-oc/opencode/opencode-timed-send.status.json";
+		const released: TimedSendStatus = {
+			schemaVersion: 1,
+			state: "released",
+			sessionID: "ses_test",
+			startedAt: "2026-07-01T01:58:01.000Z",
+			windowStart: "02:00",
+			windowEnd: "09:00",
+			configPath:
+				"C:/Users/Zhang/.config/opencode-oc/opencode/opencode-timed-send.json",
+			reason: "manual",
+		};
+		const hooks = await timedSendServer(
+			{ directory: "C:/Users/Zhang/.config/opencode-oc/opencode" },
+			{
+				configPath: "opencode-timed-send.json",
+				now: () => new Date(2026, 6, 1, 1, 58, 30),
+				readText: async () => '{"start":"02:00","end":"09:00"}',
+				readStatus: async () => released,
+				removeStatus: async (path: string) => {
+					removedPaths.push(path.replaceAll("\\", "/"));
+				},
+			},
+		);
+
+		await hooks["chat.params"]({ sessionID: "ses_test" }, {});
+		await hooks.event({
+			event: { type: "session.error", properties: { sessionID: "ses_test" } },
+		});
+
+		expect(removedPaths).toEqual([statusPath]);
 	});
 
 	test("chat.params resolves filename configPath from the OpenCode config directory", async () => {

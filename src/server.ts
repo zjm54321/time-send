@@ -3,7 +3,12 @@ import {
 	loadConfigWithPath,
 	resolveStatusPath,
 } from "./config.js";
-import { readStatus, type TimedSendStatus, writeStatus } from "./status.js";
+import {
+	readStatus,
+	removeStatus,
+	type TimedSendStatus,
+	writeStatus,
+} from "./status.js";
 import { evaluateWindow } from "./time-window.js";
 
 export const PLUGIN_ID = "opencode-timed-send";
@@ -24,6 +29,11 @@ export interface ServerHooks {
 		input: ChatParamsInput,
 		output: ChatParamsOutput,
 	) => Promise<void>;
+	readonly event: (input: ServerEventInput) => Promise<void>;
+}
+
+export interface ServerEventInput {
+	readonly event: unknown;
 }
 
 export interface TimedSendServerOptions {
@@ -37,6 +47,7 @@ export interface TimedSendServerOptions {
 		path: string,
 		status: TimedSendStatus,
 	) => Promise<void>;
+	readonly removeStatus?: (path: string) => Promise<void>;
 }
 
 const RELEASE_POLL_MS = 1000;
@@ -53,6 +64,7 @@ export async function timedSendServer(
 	input: ServerPluginInput,
 	options: TimedSendServerOptions = {},
 ): Promise<ServerHooks> {
+	const releasedSessions = new Map<string, string>();
 	return {
 		"chat.params": async (
 			chatInput: ChatParamsInput,
@@ -63,6 +75,13 @@ export async function timedSendServer(
 			const { config, configPath } = await loadConfigWithPath(loadOptions);
 			const statusPath = resolveStatusPath(config, configPath);
 			const now = options.now?.() ?? new Date();
+			const existingStatus = await (options.readStatus ?? readStatus)(
+				statusPath,
+			);
+			if (isManualReleaseForSession(existingStatus, chatInput.sessionID)) {
+				releasedSessions.set(chatInput.sessionID, statusPath);
+				return;
+			}
 
 			if (!config.enabled) {
 				await writeCurrentStatus(options, statusPath, {
@@ -109,6 +128,7 @@ export async function timedSendServer(
 				evaluation.waitMs,
 			);
 			if (released) {
+				releasedSessions.set(chatInput.sessionID, statusPath);
 				return;
 			}
 			await writeCurrentStatus(options, statusPath, {
@@ -120,6 +140,18 @@ export async function timedSendServer(
 				windowEnd: config.end,
 				configPath,
 			});
+		},
+		event: async ({ event }: ServerEventInput): Promise<void> => {
+			const sessionID = interruptedSessionID(event);
+			if (sessionID === undefined) {
+				return;
+			}
+			const statusPath = releasedSessions.get(sessionID);
+			if (statusPath === undefined) {
+				return;
+			}
+			releasedSessions.delete(sessionID);
+			await (options.removeStatus ?? removeStatus)(statusPath);
 		},
 	};
 }
@@ -158,12 +190,43 @@ async function waitForWindowOrRelease(
 		const stepMs = Math.min(remainingMs, RELEASE_POLL_MS);
 		await sleep(stepMs);
 		const status = await readStatusFn(statusPath);
-		if (status?.state === "released" && status.sessionID === sessionID) {
+		if (isManualReleaseForSession(status, sessionID)) {
 			return true;
 		}
 		remainingMs -= stepMs;
 	}
 	return false;
+}
+
+function isManualReleaseForSession(
+	status: TimedSendStatus | undefined,
+	sessionID: string,
+): boolean {
+	return (
+		status?.state === "released" &&
+		status.sessionID === sessionID &&
+		status.reason === "manual"
+	);
+}
+
+function interruptedSessionID(event: unknown): string | undefined {
+	if (!isPlainObject(event)) {
+		return undefined;
+	}
+	if (event.type !== "session.deleted" && event.type !== "session.error") {
+		return undefined;
+	}
+	const properties = event.properties;
+	if (!isPlainObject(properties)) {
+		return undefined;
+	}
+	return typeof properties.sessionID === "string"
+		? properties.sessionID
+		: undefined;
+}
+
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+	return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
 function toLoadConfigOptions(
