@@ -19,12 +19,7 @@ Local development config:
 ```json
 {
   "plugin": [
-    [
-      "file:///C:/Users/Zhang/opencode-timed-send",
-      {
-        "configPath": "opencode-timed-send.json"
-      }
-    ]
+    "file:///C:/Users/Zhang/opencode-timed-send"
   ]
 }
 ```
@@ -34,12 +29,7 @@ After `npm view time-send@latest version` succeeds, replace the local file URL w
 ```json
 {
   "plugin": [
-    [
-      "time-send@latest",
-      {
-        "configPath": "opencode-timed-send.json"
-      }
-    ]
+    "time-send@latest"
   ]
 }
 ```
@@ -48,7 +38,7 @@ Keep the local `file:///C:/Users/Zhang/opencode-timed-send` entry active until t
 
 The same package-name plugin entry is needed in `opencode.json` for server gating and `tui.json` for the TUI indicator. Do not use `time-send/tui` in `tui.json`: OpenCode installs the configured package spec first, then resolves the package's `./tui` export from that installed package.
 
-Use the same filename-only `configPath` in both entries. `time-send` first checks the active directory OpenCode provides, then falls back to `OPENCODE_CONFIG_DIR` or `$XDG_CONFIG_HOME/opencode`, so `opencode-timed-send.json` can live next to your active OpenCode config files instead of being written as an absolute path.
+No plugin option is required. `time-send` looks for `opencode-timed-send.json` by default: it first checks the active directory OpenCode provides, then falls back to `OPENCODE_CONFIG_DIR` or `$XDG_CONFIG_HOME/opencode`, so the JSON can live next to your active OpenCode config files without being referenced from `opencode.json` or `tui.json`.
 
 ## JSON Config
 
@@ -124,7 +114,7 @@ The tests cover config parsing, malformed JSON fail-closed behavior, `[02:00,09:
 1. Run `bun test`, `bun run typecheck`, and `bun run build`.
 2. Verify `dist/server.js`, `dist/tui.js`, `schema.json`, `README.md`, and `LICENSE` are included by the `files` list.
 3. Log in with `npm login`, confirm with `npm whoami`, then run `npm publish --dry-run`.
-4. Publish with `npm publish` only after the dry run reports package `time-send@0.1.2` and the expected files.
+4. Publish with `npm publish` only after the dry run reports package `time-send@0.1.3` and the expected files.
 5. Verify the network package with `npm view time-send@latest version`, then replace the local plugin entries with `time-send@latest` and restart OpenCode.
 
 ## GitHub Checklist

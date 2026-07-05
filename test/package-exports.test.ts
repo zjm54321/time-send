@@ -12,7 +12,7 @@ describe("package exports", () => {
 		);
 
 		expect(packageJson).toContain('"name": "time-send"');
-		expect(packageJson).toContain('"version": "0.1.2"');
+		expect(packageJson).toContain('"version": "0.1.3"');
 		expect(packageJson).toContain('"license": "MIT"');
 		expect(packageJson).toContain('"publishConfig"');
 		expect(packageJson).toContain('"access": "public"');
@@ -26,7 +26,7 @@ describe("package exports", () => {
 
 		expect(readme).toContain('"time-send@latest"');
 		expect(readme).toContain('"file:///C:/Users/Zhang/opencode-timed-send"');
-		expect(readme).toContain('"configPath": "opencode-timed-send.json"');
+		expect(readme).not.toContain('"configPath"');
 		expect(readme).not.toContain(
 			'"configPath": "C:/Users/Zhang/.config/opencode-oc/opencode/opencode-timed-send.json"',
 		);
