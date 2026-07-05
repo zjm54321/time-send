@@ -146,9 +146,9 @@ function isNodeError(error) {
 }
 
 // src/status.ts
-import { dirname as dirname2 } from "path";
-import { mkdir, readFile as readFile2, rename, rm, writeFile } from "fs/promises";
 import { randomUUID } from "crypto";
+import { mkdir, readFile as readFile2, rename, rm, writeFile } from "fs/promises";
+import { dirname as dirname2 } from "path";
 var pendingStatusWrites = new Map;
 async function writeStatus(path, status) {
   const previous = pendingStatusWrites.get(path) ?? Promise.resolve();
@@ -160,6 +160,9 @@ async function writeStatus(path, status) {
   });
   pendingStatusWrites.set(path, tracked);
   return next;
+}
+async function removeStatus(path) {
+  await rm(path, { force: true });
 }
 async function writeStatusFile(path, status) {
   await mkdir(dirname2(path), { recursive: true });
@@ -317,6 +320,7 @@ function minuteOfDay(time) {
 var PLUGIN_ID = "opencode-timed-send";
 var RELEASE_POLL_MS = 1000;
 async function timedSendServer(input, options = {}) {
+  const releasedSessions = new Map;
   return {
     "chat.params": async (chatInput, _output) => {
       const directory = input.directory;
@@ -324,6 +328,11 @@ async function timedSendServer(input, options = {}) {
       const { config, configPath } = await loadConfigWithPath(loadOptions);
       const statusPath = resolveStatusPath(config, configPath);
       const now = options.now?.() ?? new Date;
+      const existingStatus = await (options.readStatus ?? readStatus)(statusPath);
+      if (isManualReleaseForSession(existingStatus, chatInput.sessionID)) {
+        releasedSessions.set(chatInput.sessionID, statusPath);
+        return;
+      }
       if (!config.enabled) {
         await writeCurrentStatus(options, statusPath, {
           schemaVersion: 1,
@@ -362,6 +371,7 @@ async function timedSendServer(input, options = {}) {
       });
       const released = await waitForWindowOrRelease(options, statusPath, chatInput.sessionID, evaluation.waitMs);
       if (released) {
+        releasedSessions.set(chatInput.sessionID, statusPath);
         return;
       }
       await writeCurrentStatus(options, statusPath, {
@@ -373,6 +383,18 @@ async function timedSendServer(input, options = {}) {
         windowEnd: config.end,
         configPath
       });
+    },
+    event: async ({ event }) => {
+      const sessionID = interruptedSessionID(event);
+      if (sessionID === undefined) {
+        return;
+      }
+      const statusPath = releasedSessions.get(sessionID);
+      if (statusPath === undefined) {
+        return;
+      }
+      releasedSessions.delete(sessionID);
+      await (options.removeStatus ?? removeStatus)(statusPath);
     }
   };
 }
@@ -397,12 +419,31 @@ async function waitForWindowOrRelease(options, statusPath, sessionID, waitMs) {
     const stepMs = Math.min(remainingMs, RELEASE_POLL_MS);
     await sleep(stepMs);
     const status = await readStatusFn(statusPath);
-    if (status?.state === "released" && status.sessionID === sessionID) {
+    if (isManualReleaseForSession(status, sessionID)) {
       return true;
     }
     remainingMs -= stepMs;
   }
   return false;
+}
+function isManualReleaseForSession(status, sessionID) {
+  return status?.state === "released" && status.sessionID === sessionID && status.reason === "manual";
+}
+function interruptedSessionID(event) {
+  if (!isPlainObject3(event)) {
+    return;
+  }
+  if (event.type !== "session.deleted" && event.type !== "session.error") {
+    return;
+  }
+  const properties = event.properties;
+  if (!isPlainObject3(properties)) {
+    return;
+  }
+  return typeof properties.sessionID === "string" ? properties.sessionID : undefined;
+}
+function isPlainObject3(value) {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 function toLoadConfigOptions(directory, options) {
   return {
