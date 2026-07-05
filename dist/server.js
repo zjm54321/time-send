@@ -1,7 +1,7 @@
 // @bun
 // src/config.ts
 import { readFile } from "fs/promises";
-import { dirname, isAbsolute, join, resolve } from "path";
+import { dirname, isAbsolute, join, resolve, win32 } from "path";
 
 class TimedSendConfigError extends Error {
   constructor(message) {
@@ -41,7 +41,7 @@ async function loadConfigWithPath(options = {}) {
 function resolveConfigPathCandidates(options) {
   const envPath = options.env?.OPENCODE_TIMED_SEND_CONFIG;
   const rawPath = options.configPath ?? envPath ?? "opencode-timed-send.json";
-  if (isAbsolute(rawPath)) {
+  if (isAbsolutePath(rawPath)) {
     return [rawPath];
   }
   const paths = [];
@@ -62,16 +62,28 @@ function openCodeConfigDirectories(env) {
   return directories;
 }
 function addResolvedPath(paths, directory, rawPath) {
-  const candidate = resolve(directory, rawPath);
+  const candidate = resolvePath(directory, rawPath);
   if (!paths.includes(candidate)) {
     paths.push(candidate);
   }
 }
 function resolveStatusPath(config, configPath) {
-  if (isAbsolute(config.statusFile)) {
+  if (isAbsolutePath(config.statusFile)) {
     return config.statusFile;
   }
+  if (win32.isAbsolute(configPath)) {
+    return win32.join(win32.dirname(configPath), config.statusFile);
+  }
   return join(dirname(configPath), config.statusFile);
+}
+function resolvePath(directory, rawPath) {
+  if (win32.isAbsolute(directory)) {
+    return win32.resolve(directory, rawPath);
+  }
+  return resolve(directory, rawPath);
+}
+function isAbsolutePath(path) {
+  return isAbsolute(path) || win32.isAbsolute(path);
 }
 function parseConfigValue(value) {
   if (!isPlainObject(value)) {

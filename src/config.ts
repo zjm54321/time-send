@@ -1,5 +1,5 @@
 import { readFile } from "node:fs/promises";
-import { dirname, isAbsolute, join, resolve } from "node:path";
+import { dirname, isAbsolute, join, resolve, win32 } from "node:path";
 
 export interface DisplayConfig {
 	readonly promptRight: boolean;
@@ -89,7 +89,7 @@ function resolveConfigPathCandidates(
 ): readonly string[] {
 	const envPath = options.env?.OPENCODE_TIMED_SEND_CONFIG;
 	const rawPath = options.configPath ?? envPath ?? "opencode-timed-send.json";
-	if (isAbsolute(rawPath)) {
+	if (isAbsolutePath(rawPath)) {
 		return [rawPath];
 	}
 	const paths: string[] = [];
@@ -123,7 +123,7 @@ function addResolvedPath(
 	directory: string,
 	rawPath: string,
 ): void {
-	const candidate = resolve(directory, rawPath);
+	const candidate = resolvePath(directory, rawPath);
 	if (!paths.includes(candidate)) {
 		paths.push(candidate);
 	}
@@ -133,10 +133,24 @@ export function resolveStatusPath(
 	config: TimedSendConfig,
 	configPath: string,
 ): string {
-	if (isAbsolute(config.statusFile)) {
+	if (isAbsolutePath(config.statusFile)) {
 		return config.statusFile;
 	}
+	if (win32.isAbsolute(configPath)) {
+		return win32.join(win32.dirname(configPath), config.statusFile);
+	}
 	return join(dirname(configPath), config.statusFile);
+}
+
+function resolvePath(directory: string, rawPath: string): string {
+	if (win32.isAbsolute(directory)) {
+		return win32.resolve(directory, rawPath);
+	}
+	return resolve(directory, rawPath);
+}
+
+function isAbsolutePath(path: string): boolean {
+	return isAbsolute(path) || win32.isAbsolute(path);
 }
 
 function parseConfigValue(value: unknown): TimedSendConfig {
