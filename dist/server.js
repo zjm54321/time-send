@@ -1,7 +1,7 @@
 // @bun
 // src/config.ts
 import { readFile } from "fs/promises";
-import { dirname, isAbsolute, join, resolve, win32 } from "path";
+import { basename, dirname, isAbsolute, join, resolve, win32 } from "path";
 
 class TimedSendConfigError extends Error {
   constructor(message) {
@@ -62,10 +62,24 @@ function openCodeConfigDirectories(env) {
   return directories;
 }
 function addResolvedPath(paths, directory, rawPath) {
-  const candidate = resolvePath(directory, rawPath);
+  const candidate = resolvePath(configDirectory(directory), rawPath);
   if (!paths.includes(candidate)) {
     paths.push(candidate);
   }
+}
+function configDirectory(path) {
+  const name = basename(path).toLowerCase();
+  if (name === "opencode.json" || name === "opencode.jsonc" || name === "tui.json") {
+    return dirname(path);
+  }
+  if (win32.basename(path).toLowerCase() === name) {
+    return path;
+  }
+  const winName = win32.basename(path).toLowerCase();
+  if (winName === "opencode.json" || winName === "opencode.jsonc" || winName === "tui.json") {
+    return win32.dirname(path);
+  }
+  return path;
 }
 function resolveStatusPath(config, configPath) {
   if (isAbsolutePath(config.statusFile)) {

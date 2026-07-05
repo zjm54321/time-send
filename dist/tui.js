@@ -1,7 +1,7 @@
 // @bun
 // src/config.ts
 import { readFile } from "fs/promises";
-import { dirname, isAbsolute, join, resolve, win32 } from "path";
+import { basename, dirname, isAbsolute, join, resolve, win32 } from "path";
 
 class TimedSendConfigError extends Error {
   constructor(message) {
@@ -62,10 +62,24 @@ function openCodeConfigDirectories(env) {
   return directories;
 }
 function addResolvedPath(paths, directory, rawPath) {
-  const candidate = resolvePath(directory, rawPath);
+  const candidate = resolvePath(configDirectory(directory), rawPath);
   if (!paths.includes(candidate)) {
     paths.push(candidate);
   }
+}
+function configDirectory(path) {
+  const name = basename(path).toLowerCase();
+  if (name === "opencode.json" || name === "opencode.jsonc" || name === "tui.json") {
+    return dirname(path);
+  }
+  if (win32.basename(path).toLowerCase() === name) {
+    return path;
+  }
+  const winName = win32.basename(path).toLowerCase();
+  if (winName === "opencode.json" || winName === "opencode.jsonc" || winName === "tui.json") {
+    return win32.dirname(path);
+  }
+  return path;
 }
 function resolveStatusPath(config, configPath) {
   if (isAbsolutePath(config.statusFile)) {
@@ -503,17 +517,18 @@ async function timedSendTui(api, options = {}) {
   };
   const releaseNow = async () => {
     await refresh();
-    if (currentStatus?.state !== "waiting") {
+    const sessionID = currentStatus?.sessionID ?? currentSessionID(api);
+    if (currentStatus?.state !== "waiting" && sessionID === undefined) {
       api.ui.toast({ message: render() });
       return;
     }
     const released = {
       schemaVersion: 1,
       state: "released",
-      ...currentStatus.sessionID === undefined ? {} : { sessionID: currentStatus.sessionID },
+      ...sessionID === undefined ? {} : { sessionID },
       startedAt: currentDate().toISOString(),
-      windowStart: currentStatus.windowStart,
-      windowEnd: currentStatus.windowEnd,
+      windowStart: currentStatus?.windowStart ?? config.start,
+      windowEnd: currentStatus?.windowEnd ?? config.end,
       configPath,
       reason: "manual"
     };
@@ -551,6 +566,11 @@ async function timedSendTui(api, options = {}) {
     clearInterval(interval);
     disposeCommand?.();
   });
+}
+function currentSessionID(api) {
+  const params = api.route?.current.params;
+  const sessionID = params?.sessionID;
+  return typeof sessionID === "string" && sessionID.length > 0 ? sessionID : undefined;
 }
 function TimedSendSidebar(props) {
   let container;
