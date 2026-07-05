@@ -1,6 +1,6 @@
 {
 	"name": "time-send",
-	"version": "0.1.3",
+	"version": "0.1.4",
 	"description": "OpenCode plugin that delays provider calls until a configured local send window.",
 	"license": "MIT",
 	"type": "module",

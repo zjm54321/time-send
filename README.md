@@ -114,7 +114,7 @@ The tests cover config parsing, malformed JSON fail-closed behavior, `[02:00,09:
 1. Run `bun test`, `bun run typecheck`, and `bun run build`.
 2. Verify `dist/server.js`, `dist/tui.js`, `schema.json`, `README.md`, and `LICENSE` are included by the `files` list.
 3. Log in with `npm login`, confirm with `npm whoami`, then run `npm publish --dry-run`.
-4. Publish with `npm publish` only after the dry run reports package `time-send@0.1.3` and the expected files.
+4. Publish with `npm publish` only after the dry run reports package `time-send@0.1.4` and the expected files.
 5. Verify the network package with `npm view time-send@latest version`, then replace the local plugin entries with `time-send@latest` and restart OpenCode.
 
 ## GitHub Checklist

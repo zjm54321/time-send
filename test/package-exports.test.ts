@@ -12,7 +12,7 @@ describe("package exports", () => {
 		);
 
 		expect(packageJson).toContain('"name": "time-send"');
-		expect(packageJson).toContain('"version": "0.1.3"');
+		expect(packageJson).toContain('"version": "0.1.4"');
 		expect(packageJson).toContain('"license": "MIT"');
 		expect(packageJson).toContain('"publishConfig"');
 		expect(packageJson).toContain('"access": "public"');
